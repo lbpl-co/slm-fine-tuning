@@ -7,13 +7,11 @@ DPO (Direct Preference Optimization) fine-tuning pipeline for Fluento — a voic
 | File / Folder | Purpose |
 |---------------|---------|
 | `data/fluento_dpo_500.jsonl` | 500 preference pairs for DPO training |
-| `data/eval_prompts_500.csv` | 500 prompts for batch blind evaluation |
+| `data/eval_prompts_500.csv` | 500 prompts for evaluation |
 | `gen_dpo.py` | Script that generated the DPO dataset |
-| `local-inference.py` | Run the fine-tuned model locally (MLX on Apple Silicon) |
 | `dequantize_bnb.py` | Convert bitsandbytes 4-bit checkpoint → fp16 for merging |
-| `COLAB_GUIDE.md` | Step-by-step: train on Google Colab (T4/A100), compare vs Gemini, push eval pairs to Firestore |
-| `INFERENCE_NOTEBOOK.md` | Load saved LoRA from Drive and run inference without retraining |
-| `eval-site/` | Firebase-hosted blind A/B evaluation site |
+| `train_models.md` | Step-by-step: train on Google Colab (T4/A100) and compare vs Gemini |
+| `inference.md` | Load saved LoRA from Drive and run inference without retraining |
 
 > **Model weights are not stored here.** Save them to Google Drive or HuggingFace Hub — see the guides below.
 
@@ -61,13 +59,12 @@ python3 gen_dpo.py
 
 ## Training on Google Colab
 
-See **[COLAB_GUIDE.md](COLAB_GUIDE.md)** for the full walkthrough:
+See **[train_models.md](train_models.md)** for the full walkthrough:
 
 1. Install TRL + PEFT (no Unsloth required — avoids the mergekit conflict)
 2. Load `Qwen/Qwen2.5-7B-Instruct` with 4-bit quantization
 3. Add LoRA adapters and run DPO training (~20-30 min on T4)
 4. Compare fine-tuned model vs Gemini Flash 2.5 side-by-side
-5. Push eval pairs to Firestore for blind human evaluation
 
 **Time estimates:**
 
@@ -80,25 +77,7 @@ See **[COLAB_GUIDE.md](COLAB_GUIDE.md)** for the full walkthrough:
 
 ## Inference (no retraining)
 
-See **[INFERENCE_NOTEBOOK.md](INFERENCE_NOTEBOOK.md)** — loads a saved LoRA adapter from Google Drive in ~2 min.
-
-For local inference on Apple Silicon:
-```bash
-python3 local-inference.py
-```
-
----
-
-## Blind Evaluation Site
-
-`eval-site/` is a Firebase-hosted single-page app for human A/B evaluation:
-
-- Google Sign-In (tracks who rated)
-- Shows Response A / B with model names hidden
-- Reveals which model was which after each vote
-- Leaderboard across all model versions
-
-See **[eval-site/SETUP.md](eval-site/SETUP.md)** for the 15-minute Firebase setup.
+See **[inference.md](inference.md)** — loads a saved LoRA adapter from Google Drive in ~2 min.
 
 ---
 
@@ -112,7 +91,7 @@ cd slm-fine-tuning
 # (Optional) regenerate the DPO dataset
 python3 gen_dpo.py
 
-# Train — open COLAB_GUIDE.md and follow the steps in Google Colab
+# Train — open train_models.md and follow the steps in Google Colab
 ```
 
 ---

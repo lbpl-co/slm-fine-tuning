@@ -19,3 +19,6 @@ __pycache__/
 # Claude local settings
 .claude/
 .claude-personal/
+
+# Eval site
+eval-site/
