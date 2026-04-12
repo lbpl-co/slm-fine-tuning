@@ -13,6 +13,9 @@ fluento-firebase-secrets.json
 __pycache__/
 *.pyc
 
+# Experiment logs (local only)
+prompt_experiments.jsonl
+
 # macOS
 .DS_Store
 

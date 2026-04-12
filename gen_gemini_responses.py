@@ -7,38 +7,35 @@ Output: data/gemini_pro_responses.jsonl
 Resume-safe: already-processed IDs are skipped on re-run.
 
 Usage:
-  pip install google-generativeai
-  export GEMINI_API_KEY=your_key_here
-  python gen_gemini_responses.py
+  pip install google-genai python-dotenv
+  python gen_gemini_responses.py  # reads GOOGLE_API_KEY from .env
 """
 
 import json
 import os
 import time
 
-import google.generativeai as genai
+from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 # ── Config ────────────────────────────────────────────────────────────────────
 INPUT_FILE  = "data/fluento_dpo_500.jsonl"
 OUTPUT_FILE = "data/gemini_pro_responses.jsonl"
-MODEL_NAME  = "gemini-2.5-pro"
+MODEL_NAME   = "gemini-2.5-pro"
+PROMPT_FILE  = "prompt.txt"
 RATE_LIMIT_DELAY = 1.5   # seconds between requests — adjust if you hit quota
 
-SYSTEM_PROMPT = (
-    "You are a voice English language tutor. "
-    "Your response must be 1-2 sentences maximum — short enough to speak aloud naturally. "
-    "Ask a guiding question when appropriate. "
-    "Match your vocabulary and complexity to the learner's level. "
-    "Never give a lecture. Be warm and encouraging."
-)
-
 # ── Setup ─────────────────────────────────────────────────────────────────────
-api_key = os.environ.get("GEMINI_API_KEY")
+load_dotenv()
+api_key = os.environ.get("GOOGLE_API_KEY")
 if not api_key:
-    raise SystemExit("Set GEMINI_API_KEY environment variable first.")
+    raise SystemExit("GOOGLE_API_KEY not found in .env")
 
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel(MODEL_NAME, system_instruction=SYSTEM_PROMPT)
+client = genai.Client(api_key=api_key)
+
+SYSTEM_PROMPT = open(PROMPT_FILE).read().strip()
+print(f"Using prompt from {PROMPT_FILE}:\n{SYSTEM_PROMPT}\n")
 
 # Load already-processed IDs for resume support
 done_ids = set()
@@ -65,7 +62,11 @@ with open(OUTPUT_FILE, "a") as out:
     for i, row in enumerate(todo):
         prompt_text = f"[{row['learner_level']} level] {row['prompt']}"
         try:
-            response = model.generate_content(prompt_text)
+            response = client.models.generate_content(
+                model=MODEL_NAME,
+                contents=prompt_text,
+                config=types.GenerateContentConfig(system_instruction=SYSTEM_PROMPT),
+            )
             result = {
                 "id":                  row["id"],
                 "dimension":           row["dimension"],
