@@ -20,5 +20,6 @@ __pycache__/
 .claude/
 .claude-personal/
 
-# Eval site
+# Eval site (track only notebook docs, not app code/config)
 eval-site/
+!eval-site/*.md
