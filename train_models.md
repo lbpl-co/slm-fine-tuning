@@ -3,7 +3,7 @@
 ## Prerequisites
 - Google account with access to [Google Colab](https://colab.research.google.com)
 - Free tier works (T4 GPU) — Colab Pro (A100) is faster but not required
-- The `fluento_dpo_500.jsonl` file from this repo
+- The `tutor_dpo_500.jsonl` file from this repo
 - ~30-45 minutes total (setup + training + testing)
 
 ---
@@ -48,7 +48,7 @@ print("OK — DPO imports work!")
 
 Option A — Upload manually:
 - Click the folder icon in Colab's left sidebar
-- Drag `fluento_dpo_500.jsonl` into the file browser
+- Drag `tutor_dpo_500.jsonl` into the file browser
 
 Option B — From Google Drive:
 ```python
@@ -56,7 +56,7 @@ Option B — From Google Drive:
 from google.colab import drive
 drive.mount('/content/drive')
 # Then copy your file:
-# !cp /content/drive/MyDrive/path/to/fluento_dpo_500.jsonl /content/
+# !cp /content/drive/MyDrive/path/to/tutor_dpo_500.jsonl /content/
 ```
 
 ---
@@ -132,7 +132,7 @@ print("LoRA adapters added!")
 # Cell 5: Load and format the DPO dataset
 from datasets import load_dataset
 
-dataset = load_dataset("json", data_files="/content/fluento_dpo_500.jsonl", split="train")
+dataset = load_dataset("json", data_files="/content/tutor_dpo_500.jsonl", split="train")
 
 print(f"Loaded {len(dataset)} pairs")
 print(f"Sample: {dataset[0]}")
@@ -144,7 +144,7 @@ def format_for_dpo(example):
     """Convert our format to TRL DPO trainer format."""
     return {
         "prompt": [
-            {"role": "system", "content": "You are Fluento, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."},
+            {"role": "system", "content": "You are Tutor, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."},
             {"role": "user", "content": example["prompt"]},
         ],
         "chosen": [
@@ -169,7 +169,7 @@ print(f"Keys: {list(dpo_dataset[0].keys())}")
 from trl import DPOConfig, DPOTrainer
 
 training_args = DPOConfig(
-    output_dir="./fluento-dpo-output",
+    output_dir="./tutor-dpo-output",
     per_device_train_batch_size=2,
     gradient_accumulation_steps=4,    # Effective batch size = 8
     num_train_epochs=2,               # 2 epochs is usually enough for 500 pairs
@@ -220,7 +220,7 @@ test_prompts = [
 
 for prompt in test_prompts:
     messages = [
-        {"role": "system", "content": "You are Fluento, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."},
+        {"role": "system", "content": "You are Tutor, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."},
         {"role": "user", "content": prompt},
     ]
     inputs = tokenizer.apply_chat_template(
@@ -238,7 +238,7 @@ for prompt in test_prompts:
     response = tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True)
     print(f"\n{'='*60}")
     print(f"STUDENT: {prompt}")
-    print(f"FLUENTO: {response}")
+    print(f"TUTOR: {response}")
 ```
 
 ---
@@ -247,8 +247,8 @@ for prompt in test_prompts:
 
 ```python
 # Cell 9a: Save LoRA adapter locally (small, ~50MB)
-model.save_pretrained("fluento-dpo-lora")
-tokenizer.save_pretrained("fluento-dpo-lora")
+model.save_pretrained("tutor-dpo-lora")
+tokenizer.save_pretrained("tutor-dpo-lora")
 print("LoRA adapter saved locally!")
 ```
 
@@ -258,7 +258,7 @@ from google.colab import drive
 drive.mount('/content/drive')
 
 import shutil
-save_path = "/content/drive/MyDrive/fluento-dpo-lora"
+save_path = "/content/drive/MyDrive/tutor-dpo-lora"
 model.save_pretrained(save_path)
 tokenizer.save_pretrained(save_path)
 print(f"Model saved to Google Drive: {save_path}")
@@ -266,19 +266,19 @@ print(f"Model saved to Google Drive: {save_path}")
 
 ```python
 # Cell 9c: (Optional) Push to HuggingFace Hub
-# model.push_to_hub("your-username/fluento-dpo-lora")
-# tokenizer.push_to_hub("your-username/fluento-dpo-lora")
+# model.push_to_hub("your-username/tutor-dpo-lora")
+# tokenizer.push_to_hub("your-username/tutor-dpo-lora")
 ```
 
 ```python
 # Cell 9d: (Optional) Export merged model for local inference
 # Merges LoRA weights into the base model — larger but standalone
 merged_model = model.merge_and_unload()
-merged_model.save_pretrained("fluento-merged")
-tokenizer.save_pretrained("fluento-merged")
+merged_model.save_pretrained("tutor-merged")
+tokenizer.save_pretrained("tutor-merged")
 # Also save to Drive:
-merged_model.save_pretrained("/content/drive/MyDrive/fluento-merged")
-tokenizer.save_pretrained("/content/drive/MyDrive/fluento-merged")
+merged_model.save_pretrained("/content/drive/MyDrive/tutor-merged")
+tokenizer.save_pretrained("/content/drive/MyDrive/tutor-merged")
 print("Merged model saved! Convert to GGUF with llama.cpp for Ollama use.")
 ```
 
@@ -301,7 +301,7 @@ import google.generativeai as genai
 genai.configure(api_key="YOUR_API_KEY_HERE")  # <-- paste your Gemini API key
 gemini = genai.GenerativeModel("gemini-2.5-flash")
 
-SYSTEM = "You are Fluento, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."
+SYSTEM = "You are Tutor, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."
 
 print("Gemini configured!")
 ```
@@ -321,7 +321,7 @@ test_prompts = [
 results = []
 
 for level, prompt in test_prompts:
-    # --- Fluento (DPO fine-tuned) ---
+    # --- Tutor (DPO fine-tuned) ---
     messages = [
         {"role": "system", "content": SYSTEM},
         {"role": "user", "content": prompt},
@@ -330,23 +330,23 @@ for level, prompt in test_prompts:
         messages, tokenize=True, add_generation_prompt=True, return_tensors="pt", return_dict=True
     ).to("cuda")
     outputs = model.generate(**inputs, max_new_tokens=150, temperature=0.7, top_p=0.9, do_sample=True)
-    fluento_resp = tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True).strip()
+    tutor_resp = tokenizer.decode(outputs[0][inputs["input_ids"].shape[-1]:], skip_special_tokens=True).strip()
 
     # --- Gemini Flash 2.5 ---
     gemini_resp = gemini.generate_content(
         f"{SYSTEM}\n\nStudent ({level} level): {prompt}"
     ).text.strip()
 
-    results.append((level, prompt, fluento_resp, gemini_resp))
+    results.append((level, prompt, tutor_resp, gemini_resp))
 
     # Print as we go
     print(f"\n{'='*70}")
     print(f"[{level.upper()}] STUDENT: {prompt}")
-    print(f"\n  FLUENTO (DPO Qwen 7B):")
-    print(f"  {fluento_resp}")
+    print(f"\n  TUTOR (DPO Qwen 7B):")
+    print(f"  {tutor_resp}")
     print(f"\n  GEMINI FLASH 2.5:")
     print(f"  {gemini_resp}")
-    print(f"\n  Length — Fluento: {len(fluento_resp)} chars | Gemini: {len(gemini_resp)} chars")
+    print(f"\n  Length — Tutor: {len(tutor_resp)} chars | Gemini: {len(gemini_resp)} chars")
 ```
 
 ```python
@@ -354,31 +354,31 @@ for level, prompt in test_prompts:
 print(f"\n{'='*70}")
 print("SUMMARY SCORECARD")
 print(f"{'='*70}")
-print(f"\n{'Metric':<25} {'Fluento (DPO)':<20} {'Gemini Flash 2.5':<20}")
+print(f"\n{'Metric':<25} {'Tutor (DPO)':<20} {'Gemini Flash 2.5':<20}")
 print(f"{'-'*65}")
 
-fluento_lengths = [len(r[2]) for r in results]
+tutor_lengths = [len(r[2]) for r in results]
 gemini_lengths = [len(r[3]) for r in results]
 
-print(f"{'Avg response length':<25} {sum(fluento_lengths)//len(fluento_lengths):<20} {sum(gemini_lengths)//len(gemini_lengths):<20}")
-print(f"{'Max response length':<25} {max(fluento_lengths):<20} {max(gemini_lengths):<20}")
-print(f"{'Min response length':<25} {min(fluento_lengths):<20} {min(gemini_lengths):<20}")
+print(f"{'Avg response length':<25} {sum(tutor_lengths)//len(tutor_lengths):<20} {sum(gemini_lengths)//len(gemini_lengths):<20}")
+print(f"{'Max response length':<25} {max(tutor_lengths):<20} {max(gemini_lengths):<20}")
+print(f"{'Min response length':<25} {min(tutor_lengths):<20} {min(gemini_lengths):<20}")
 
 # Count responses that end with a question (scaffolding signal)
-fluento_questions = sum(1 for r in results if '?' in r[2])
+tutor_questions = sum(1 for r in results if '?' in r[2])
 gemini_questions = sum(1 for r in results if '?' in r[3])
-print(f"{'Asks a question':<25} {fluento_questions}/{len(results):<17} {gemini_questions}/{len(results):<17}")
+print(f"{'Asks a question':<25} {tutor_questions}/{len(results):<17} {gemini_questions}/{len(results):<17}")
 
 # Count short responses (under 200 chars — good for voice)
-fluento_short = sum(1 for r in results if len(r[2]) < 200)
+tutor_short = sum(1 for r in results if len(r[2]) < 200)
 gemini_short = sum(1 for r in results if len(r[3]) < 200)
-print(f"{'Voice-friendly (<200ch)':<25} {fluento_short}/{len(results):<17} {gemini_short}/{len(results):<17}")
+print(f"{'Voice-friendly (<200ch)':<25} {tutor_short}/{len(results):<17} {gemini_short}/{len(results):<17}")
 
 print(f"\nKey things to look for:")
-print(f"  - Does Fluento ask leading questions instead of giving answers? (scaffolding)")
-print(f"  - Are Fluento responses shorter? (verbosity control for voice)")
-print(f"  - Does Fluento encourage the student to try again? (error correction style)")
-print(f"  - Does Fluento match the complexity to the level tag? (difficulty calibration)")
+print(f"  - Does Tutor ask leading questions instead of giving answers? (scaffolding)")
+print(f"  - Are Tutor responses shorter? (verbosity control for voice)")
+print(f"  - Does Tutor encourage the student to try again? (error correction style)")
+print(f"  - Does Tutor match the complexity to the level tag? (difficulty calibration)")
 ```
 
 ---
@@ -387,9 +387,9 @@ print(f"  - Does Fluento match the complexity to the level tag? (difficulty cali
 
 ```python
 # Cell 12: Download the LoRA adapter
-!zip -r fluento-dpo-lora.zip fluento-dpo-lora/
+!zip -r tutor-dpo-lora.zip tutor-dpo-lora/
 from google.colab import files
-files.download("fluento-dpo-lora.zip")
+files.download("tutor-dpo-lora.zip")
 ```
 
 Then on your Mac:
@@ -399,14 +399,14 @@ brew install ollama
 
 # Create a Modelfile (using the merged GGUF if you converted it)
 cat > Modelfile << 'EOF'
-FROM ./fluento-merged.gguf
-SYSTEM "You are Fluento, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."
+FROM ./tutor-merged.gguf
+SYSTEM "You are Tutor, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."
 PARAMETER temperature 0.7
 EOF
 
 # Create and run
-ollama create fluento -f Modelfile
-ollama run fluento "I goed to the store yesterday"
+ollama create tutor -f Modelfile
+ollama run tutor "I goed to the store yesterday"
 ```
 
 ---

@@ -1,6 +1,6 @@
 # Seed Firestore from CSV — Colab Notebook
 
-Runs both Fluento (DPO fine-tuned) and Gemini Flash 2.5 on every prompt in
+Runs both Tutor (DPO fine-tuned) and Gemini Flash 2.5 on every prompt in
 `eval_prompts_500.csv`, then pushes the results to Firestore as `eval_pairs`.
 
 **Requirements:** Colab with T4 GPU (free tier works). ~45 min for 500 prompts.
@@ -23,7 +23,7 @@ from google.colab import drive
 drive.mount('/content/drive')
 
 # Verify your model files exist
-!ls /content/drive/MyDrive/fluento-dpo-lora/
+!ls /content/drive/MyDrive/tutor-dpo-lora/
 ```
 
 ---
@@ -36,7 +36,7 @@ from peft import PeftModel
 import torch
 
 MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-LORA_PATH  = "/content/drive/MyDrive/fluento-dpo-lora"
+LORA_PATH  = "/content/drive/MyDrive/tutor-dpo-lora"
 
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
@@ -55,7 +55,7 @@ base_model = AutoModelForCausalLM.from_pretrained(
 model = PeftModel.from_pretrained(base_model, LORA_PATH)
 model.eval()
 
-print(f"Loaded Fluento from {LORA_PATH}")
+print(f"Loaded Tutor from {LORA_PATH}")
 ```
 
 ---
@@ -124,11 +124,11 @@ import time
 from firebase_admin import firestore as fs
 
 SYSTEM = (
-    "You are Fluento, a friendly English language tutor for voice conversations. "
+    "You are Tutor, a friendly English language tutor for voice conversations. "
     "Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."
 )
 
-MODEL_A = "fluento-dpo-v1"   # bump to v2, v3 etc. when you retrain
+MODEL_A = "tutor-dpo-v1"   # bump to v2, v3 etc. when you retrain
 MODEL_B = "gemini-flash-2.5"
 
 def make_pair_id(prompt, model_a):
@@ -136,7 +136,7 @@ def make_pair_id(prompt, model_a):
     raw = f"{prompt.strip().lower()}|{model_a.strip().lower()}"
     return hashlib.sha256(raw.encode()).hexdigest()[:20]
 
-def ask_fluento(prompt, max_tokens=150):
+def ask_tutor(prompt, max_tokens=150):
     messages = [
         {"role": "system", "content": SYSTEM},
         {"role": "user",   "content": prompt},
@@ -170,7 +170,7 @@ for i, row in enumerate(rows):
         continue
 
     try:
-        fluento_resp = ask_fluento(prompt)
+        tutor_resp = ask_tutor(prompt)
         gemini_resp  = gemini.generate_content(
             f"{SYSTEM}\n\nStudent ({level} level): {prompt}"
         ).text.strip()
@@ -179,7 +179,7 @@ for i, row in enumerate(rows):
             "prompt":           prompt,
             "level":            level,
             "model_a_name":     MODEL_A,
-            "model_a_response": fluento_resp,
+            "model_a_response": tutor_resp,
             "model_b_name":     MODEL_B,
             "model_b_response": gemini_resp,
             "created_at":       fs.SERVER_TIMESTAMP,
@@ -200,7 +200,7 @@ print(f"\nDone!  pushed={pushed}  skipped={skipped}  errors={errors}")
 ```
 
 > Re-running this cell is safe — existing docs are skipped via the dedup check.
-> To push a new model version, change `MODEL_A = "fluento-dpo-v2"` and re-run.
+> To push a new model version, change `MODEL_A = "tutor-dpo-v2"` and re-run.
 
 ---
 

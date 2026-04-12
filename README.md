@@ -1,12 +1,12 @@
-# Fluento SLM Fine-Tuning
+# Tutor SLM Fine-Tuning
 
-DPO (Direct Preference Optimization) fine-tuning pipeline for Fluento — a voice-to-voice English language tutor powered by a small language model.
+DPO (Direct Preference Optimization) fine-tuning pipeline for Tutor — a voice-to-voice English language tutor powered by a small language model.
 
 ## What's in this repo
 
 | File / Folder | Purpose |
 |---------------|---------|
-| `data/fluento_dpo_500.jsonl` | 500 preference pairs for DPO training |
+| `data/tutor_dpo_500.jsonl` | 500 preference pairs for DPO training |
 | `data/eval_prompts_500.csv` | 500 prompts for evaluation |
 | `gen_dpo.py` | Script that generated the DPO dataset |
 | `dequantize_bnb.py` | Convert bitsandbytes 4-bit checkpoint → fp16 for merging |
@@ -17,7 +17,7 @@ DPO (Direct Preference Optimization) fine-tuning pipeline for Fluento — a voic
 
 ---
 
-## Dataset — `fluento_dpo_500.jsonl`
+## Dataset — `tutor_dpo_500.jsonl`
 
 500 synthetic preference pairs. Each record:
 
@@ -99,7 +99,7 @@ python3 gen_dpo.py
 ## Model weights
 
 Model weights are **not committed** to this repo (too large). Save them to:
-- **Google Drive** — see Step 9 in `COLAB_GUIDE.md`
-- **HuggingFace Hub** — uncomment the `push_to_hub` cell in `COLAB_GUIDE.md`
+- **Google Drive** — see Step 9 in `train_models.md`
+- **HuggingFace Hub** — uncomment the `push_to_hub` cell in `train_models.md`
 
-The `fluento-merged/`, `fluento-merged-fp16/`, and `fluento-mlx-4bit/` directories are in `.gitignore`.
+The `tutor-merged/`, `tutor-merged-fp16/`, and `tutor-mlx-4bit/` directories are in `.gitignore`.

@@ -1,4 +1,4 @@
-# Fluento Inference Notebook (no retraining needed)
+# Tutor Inference Notebook (no retraining needed)
 
 Loads the fine-tuned LoRA adapter from Google Drive. Use this for:
 - Testing new prompts
@@ -26,8 +26,8 @@ from google.colab import drive
 drive.mount('/content/drive')
 
 # Verify your model files exist
-!ls /content/drive/MyDrive/fluento-dpo-lora/
-!ls /content/drive/MyDrive/fluento-merged/
+!ls /content/drive/MyDrive/tutor-dpo-lora/
+!ls /content/drive/MyDrive/tutor-merged/
 ```
 
 ---
@@ -43,7 +43,7 @@ import torch
 model_name = "Qwen/Qwen2.5-7B-Instruct"
 
 # Path to your saved LoRA adapter on Drive
-LORA_PATH = "/content/drive/MyDrive/fluento-dpo-lora"
+LORA_PATH = "/content/drive/MyDrive/tutor-dpo-lora"
 
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
@@ -73,9 +73,9 @@ print(f"Model loaded from {LORA_PATH}")
 ## Cell 4: Helper function
 
 ```python
-SYSTEM = "You are Fluento, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."
+SYSTEM = "You are Tutor, a friendly English language tutor for voice conversations. Keep responses short (1-2 sentences), ask guiding questions, and match the learner's level."
 
-def ask_fluento(prompt, max_tokens=150, temperature=0.7):
+def ask_tutor(prompt, max_tokens=150, temperature=0.7):
     messages = [
         {"role": "system", "content": SYSTEM},
         {"role": "user", "content": prompt},
@@ -109,7 +109,7 @@ prompts = [
 
 for p in prompts:
     print(f"\nSTUDENT: {p}")
-    print(f"FLUENTO: {ask_fluento(p)}")
+    print(f"TUTOR: {ask_tutor(p)}")
     print("—" * 50)
 ```
 
@@ -147,20 +147,20 @@ test_prompts = [
 results = []
 
 for level, prompt in test_prompts:
-    fluento_resp = ask_fluento(prompt)
+    tutor_resp = ask_tutor(prompt)
     gemini_resp = gemini.generate_content(
         f"{SYSTEM}\n\nStudent ({level} level): {prompt}"
     ).text.strip()
 
-    results.append((level, prompt, fluento_resp, gemini_resp))
+    results.append((level, prompt, tutor_resp, gemini_resp))
 
     print(f"\n{'='*70}")
     print(f"[{level.upper()}] STUDENT: {prompt}")
-    print(f"\n  FLUENTO (DPO Qwen 7B):")
-    print(f"  {fluento_resp}")
+    print(f"\n  TUTOR (DPO Qwen 7B):")
+    print(f"  {tutor_resp}")
     print(f"\n  GEMINI FLASH 2.5:")
     print(f"  {gemini_resp}")
-    print(f"\n  Length — Fluento: {len(fluento_resp)} chars | Gemini: {len(gemini_resp)} chars")
+    print(f"\n  Length — Tutor: {len(tutor_resp)} chars | Gemini: {len(gemini_resp)} chars")
 ```
 
 ---
@@ -171,31 +171,31 @@ for level, prompt in test_prompts:
 print(f"\n{'='*70}")
 print("SUMMARY SCORECARD")
 print(f"{'='*70}")
-print(f"\n{'Metric':<25} {'Fluento (DPO)':<20} {'Gemini Flash 2.5':<20}")
+print(f"\n{'Metric':<25} {'Tutor (DPO)':<20} {'Gemini Flash 2.5':<20}")
 print(f"{'-'*65}")
 
-fluento_lengths = [len(r[2]) for r in results]
+tutor_lengths = [len(r[2]) for r in results]
 gemini_lengths = [len(r[3]) for r in results]
 
-print(f"{'Avg response length':<25} {sum(fluento_lengths)//len(fluento_lengths):<20} {sum(gemini_lengths)//len(gemini_lengths):<20}")
-print(f"{'Max response length':<25} {max(fluento_lengths):<20} {max(gemini_lengths):<20}")
-print(f"{'Min response length':<25} {min(fluento_lengths):<20} {min(gemini_lengths):<20}")
+print(f"{'Avg response length':<25} {sum(tutor_lengths)//len(tutor_lengths):<20} {sum(gemini_lengths)//len(gemini_lengths):<20}")
+print(f"{'Max response length':<25} {max(tutor_lengths):<20} {max(gemini_lengths):<20}")
+print(f"{'Min response length':<25} {min(tutor_lengths):<20} {min(gemini_lengths):<20}")
 
 # Count responses that end with a question (scaffolding signal)
-fluento_questions = sum(1 for r in results if '?' in r[2])
+tutor_questions = sum(1 for r in results if '?' in r[2])
 gemini_questions = sum(1 for r in results if '?' in r[3])
-print(f"{'Asks a question':<25} {fluento_questions}/{len(results):<17} {gemini_questions}/{len(results):<17}")
+print(f"{'Asks a question':<25} {tutor_questions}/{len(results):<17} {gemini_questions}/{len(results):<17}")
 
 # Count short responses (under 200 chars — good for voice)
-fluento_short = sum(1 for r in results if len(r[2]) < 200)
+tutor_short = sum(1 for r in results if len(r[2]) < 200)
 gemini_short = sum(1 for r in results if len(r[3]) < 200)
-print(f"{'Voice-friendly (<200ch)':<25} {fluento_short}/{len(results):<17} {gemini_short}/{len(results):<17}")
+print(f"{'Voice-friendly (<200ch)':<25} {tutor_short}/{len(results):<17} {gemini_short}/{len(results):<17}")
 
 print(f"\nKey things to look for:")
-print(f"  - Does Fluento ask leading questions instead of giving answers? (scaffolding)")
-print(f"  - Are Fluento responses shorter? (verbosity control for voice)")
-print(f"  - Does Fluento encourage the student to try again? (error correction style)")
-print(f"  - Does Fluento match the complexity to the level tag? (difficulty calibration)")
+print(f"  - Does Tutor ask leading questions instead of giving answers? (scaffolding)")
+print(f"  - Are Tutor responses shorter? (verbosity control for voice)")
+print(f"  - Does Tutor encourage the student to try again? (error correction style)")
+print(f"  - Does Tutor match the complexity to the level tag? (difficulty calibration)")
 ```
 
 ---
@@ -213,12 +213,12 @@ custom_prompts = [
 ]
 
 for p in custom_prompts:
-    fluento_resp = ask_fluento(p)
+    tutor_resp = ask_tutor(p)
     gemini_resp = gemini.generate_content(f"{SYSTEM}\n\nStudent: {p}").text.strip()
 
     print(f"\n{'='*60}")
     print(f"STUDENT: {p}")
-    print(f"FLUENTO: {fluento_resp}")
+    print(f"TUTOR: {tutor_resp}")
     print(f"GEMINI:  {gemini_resp}")
 ```
 
@@ -231,14 +231,14 @@ for p in custom_prompts:
 # to verify it learned the preferred behaviors
 import json, random
 
-with open("/content/drive/MyDrive/fluento_dpo_500.jsonl") as f:
+with open("/content/drive/MyDrive/tutor_dpo_500.jsonl") as f:
     all_pairs = [json.loads(line) for line in f]
 
 sample = random.sample(all_pairs, 10)
 
 matches = 0
 for pair in sample:
-    response = ask_fluento(pair["prompt"])
+    response = ask_tutor(pair["prompt"])
 
     # Simple heuristic: is the response more similar to chosen or rejected?
     # (by length — chosen should be shorter for verbosity pairs)
@@ -257,6 +257,6 @@ for pair in sample:
 |------|---------|
 | Load time | ~2 min (vs ~30 min to retrain) |
 | GPU needed | T4 (free Colab) — no TPU needed |
-| Model on Drive | `/content/drive/MyDrive/fluento-dpo-lora/` |
-| Merged model | `/content/drive/MyDrive/fluento-merged/` |
-| Training data | `/content/drive/MyDrive/fluento_dpo_500.jsonl` |
+| Model on Drive | `/content/drive/MyDrive/tutor-dpo-lora/` |
+| Merged model | `/content/drive/MyDrive/tutor-merged/` |
+| Training data | `/content/drive/MyDrive/tutor_dpo_500.jsonl` |
