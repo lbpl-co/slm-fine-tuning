@@ -2,22 +2,32 @@
 
 DPO (Direct Preference Optimization) fine-tuning pipeline for Tutor — a voice-to-voice English language tutor powered by a small language model.
 
-## What's in this repo
-
-| File / Folder | Purpose |
-|---------------|---------|
-| `data/tutor_dpo_500.jsonl` | 500 preference pairs for DPO training |
-| `data/eval_prompts_500.csv` | 500 prompts for evaluation |
-| `gen_dpo.py` | Script that generated the DPO dataset |
-| `dequantize_bnb.py` | Convert bitsandbytes 4-bit checkpoint → fp16 for merging |
-| `train_models.md` | Step-by-step: train on Google Colab (T4/A100) and compare vs Gemini |
-| `inference.md` | Load saved LoRA from Drive and run inference without retraining |
-
-> **Model weights are not stored here.** Save them to Google Drive or HuggingFace Hub — see the guides below.
+**Live eval site:** https://slm-tutor-finetuning.online/
 
 ---
 
-## Dataset — `tutor_dpo_500.jsonl`
+## Repo structure
+
+```
+├── data/
+│   ├── fluento_dpo_500.jsonl       # 500 DPO preference pairs (training)
+│   ├── gemini_pro_responses.jsonl  # Gemini Pro responses for v2 retraining
+│   └── eval_prompts_500.csv        # 500 prompts for evaluation
+├── docs/
+│   ├── train_models.md             # Step-by-step Colab training guide (v1)
+│   ├── retrain_with_gemini.md      # Colab guide for Gemini-assisted retraining (v2)
+│   └── inference.md                # Load saved LoRA and run inference
+├── gen_dpo.py                      # Generates the DPO dataset
+├── gen_gemini_responses.py         # Generates Gemini Pro responses for retraining
+├── experiment_prompt.py            # Interactive prompt testing loop
+└── prompt.txt                      # Active system prompt (edit and re-run to test)
+```
+
+> **Model weights are not stored here.** Save them to Google Drive or HuggingFace Hub — see the guides in `docs/`.
+
+---
+
+## Dataset — `fluento_dpo_500.jsonl`
 
 500 synthetic preference pairs. Each record:
 
@@ -59,7 +69,9 @@ python3 gen_dpo.py
 
 ## Training on Google Colab
 
-See **[train_models.md](train_models.md)** for the full walkthrough:
+### v1 — Hand-crafted DPO
+
+See **[docs/train_models.md](docs/train_models.md)** for the full walkthrough:
 
 1. Install TRL + PEFT (no Unsloth required — avoids the mergekit conflict)
 2. Load `Qwen/Qwen2.5-7B-Instruct` with 4-bit quantization
@@ -73,11 +85,34 @@ See **[train_models.md](train_models.md)** for the full walkthrough:
 | T4 (free) | ~5 min | ~20-30 min | ~35-45 min |
 | A100 (Pro) | ~3 min | ~5-10 min | ~15-20 min |
 
+### v2 — Gemini-assisted retraining
+
+See **[docs/retrain_with_gemini.md](docs/retrain_with_gemini.md)**:
+
+1. Generate Gemini Pro responses locally: `python3 gen_gemini_responses.py`
+2. Upload both data files to Google Drive
+3. Follow the Colab notebook to retrain using Gemini responses as `chosen`
+
+---
+
+## Prompt experimentation
+
+Edit `prompt.txt`, then run:
+
+```bash
+python3 experiment_prompt.py              # sample 2 prompts per dimension (10 total)
+python3 experiment_prompt.py --n 3        # 3 per dimension (15 total)
+python3 experiment_prompt.py --ids 1,5,42 # test specific IDs
+python3 experiment_prompt.py --compare    # side-by-side of all saved runs
+```
+
+Each run is saved to `prompt_experiments.jsonl` for comparison.
+
 ---
 
 ## Inference (no retraining)
 
-See **[inference.md](inference.md)** — loads a saved LoRA adapter from Google Drive in ~2 min.
+See **[docs/inference.md](docs/inference.md)** — loads a saved LoRA adapter from Google Drive in ~2 min.
 
 ---
 
@@ -88,10 +123,16 @@ See **[inference.md](inference.md)** — loads a saved LoRA adapter from Google 
 git clone https://github.com/lbpl-co/slm-fine-tuning.git
 cd slm-fine-tuning
 
+# Set up env
+cp .env.example .env  # add your GOOGLE_API_KEY
+
 # (Optional) regenerate the DPO dataset
 python3 gen_dpo.py
 
-# Train — open train_models.md and follow the steps in Google Colab
+# (Optional) generate Gemini Pro responses for v2 retraining
+python3 gen_gemini_responses.py
+
+# Train — open docs/train_models.md and follow the steps in Google Colab
 ```
 
 ---
@@ -99,7 +140,7 @@ python3 gen_dpo.py
 ## Model weights
 
 Model weights are **not committed** to this repo (too large). Save them to:
-- **Google Drive** — see Step 9 in `train_models.md`
-- **HuggingFace Hub** — uncomment the `push_to_hub` cell in `train_models.md`
+- **Google Drive** — see Step 9 in `docs/train_models.md`
+- **HuggingFace Hub** — uncomment the `push_to_hub` cell in `docs/train_models.md`
 
-The `tutor-merged/`, `tutor-merged-fp16/`, and `tutor-mlx-4bit/` directories are in `.gitignore`.
+The `fluento-merged/`, `fluento-merged-fp16/`, and `fluento-mlx-4bit/` directories are in `.gitignore`.
